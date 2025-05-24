@@ -9,14 +9,26 @@ class OpenCVCamera:
         if not self.cap.isOpened():
             raise ValueError("Unable to open video source", camera_index)
         
+        # Force landscape orientation by swapping width/height if needed
         self.width = int(self.cap.get(cv.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+        
+        # Ensure width > height (landscape)
+        if self.height > self.width:
+            self.width, self.height = self.height, self.width
+        
         self.fps = self.cap.get(cv.CAP_PROP_FPS)
         
     def get_frame(self):
         ret, frame = self.cap.read()
         if ret:
-            return cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            
+            # Rotate to landscape if needed
+            if frame.shape[0] > frame.shape[1]:  # If height > width (portrait)
+                frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
+                
+            return frame
         return None
         
     def release(self):
@@ -24,7 +36,7 @@ class OpenCVCamera:
             self.cap.release()
 
 class PygameDisplay:
-    def __init__(self, width=500, height=500):
+    def __init__(self, width=1280, height=1720):  # Default to landscape aspect ratio
         pygame.init()
         self.screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
@@ -35,6 +47,8 @@ class PygameDisplay:
                 return False
             if event.type == KEYDOWN and event.key == K_ESCAPE:
                 pygame.display.set_mode((self.screen.get_width(), self.screen.get_height()))
+            if event.type == KEYDOWN and event.key == K_F4:
+                pygame.display.set_mode((self.screen.get_width(), self.screen.get_height()),pygame.FULLSCREEN)
         return True
         
     def quit(self):
@@ -43,7 +57,11 @@ class PygameDisplay:
 class CameraApp:
     def __init__(self):
         self.camera = OpenCVCamera()
-        self.display = PygameDisplay(self.camera.width, self.camera.height)
+        # Initialize display with landscape dimensions
+        
+        display_width = max(self.camera.width, self.camera.height)
+        display_height = min(self.camera.width, self.camera.height)
+        self.display = PygameDisplay(display_width, display_height)
         
     def run(self):
         running = True
@@ -51,18 +69,22 @@ class CameraApp:
             frame = self.camera.get_frame()
             if frame is None:
                 break
-            
-            # Convert the frame to a pygame surface and display it
-            frame = np.rot90(frame)  # Rotate if needed
-            frame = pygame.surfarray.make_surface(frame)
-            self.display.screen.blit(frame, (0, 0))
+
+            frame_surface = pygame.surfarray.make_surface(np.rot90(frame))
+
+            rotated_surface = pygame.transform.rotate(frame_surface, 90)
+
+            rotated_surface = pygame.transform.smoothscale(rotated_surface, (self.display.screen.get_width(), self.display.screen.get_height()))
+
+            self.display.screen.blit(rotated_surface, (0, 0))
             pygame.display.flip()
-            
+
             running = self.display.process_events()
             self.display.clock.tick(self.camera.fps)
-            
+
         self.camera.release()
         self.display.quit()
+
 
 if __name__ == "__main__":
     app = CameraApp()
