@@ -23,9 +23,8 @@ class OpenCVCamera:
         ret, frame = self.cap.read()
         if ret:
             frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-            
-            # Rotate to landscape if needed
-            if frame.shape[0] > frame.shape[1]:  # If height > width (portrait)
+
+            if frame.shape[0] > frame.shape[1]:  
                 frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
                 
             return frame
@@ -55,14 +54,18 @@ class PygameDisplay:
         pygame.quit()
 
 class CameraApp:
+
     def __init__(self):
         self.camera = OpenCVCamera()
-        # Initialize display with landscape dimensions
-        
         display_width = max(self.camera.width, self.camera.height)
         display_height = min(self.camera.width, self.camera.height)
         self.display = PygameDisplay(display_width, display_height)
-        
+
+        self.original_overlay = pygame.image.load("image/Small.png").convert_alpha()
+        self.original_overlay = pygame.transform.scale(self.original_overlay, (200, 200))
+
+        self.angle = 0  # Initial rotation angle
+
     def run(self):
         running = True
         while running:
@@ -71,16 +74,24 @@ class CameraApp:
                 break
 
             frame_surface = pygame.surfarray.make_surface(np.rot90(frame))
-
             rotated_surface = pygame.transform.rotate(frame_surface, 90)
-
             rotated_surface = pygame.transform.smoothscale(rotated_surface, (self.display.screen.get_width(), self.display.screen.get_height()))
 
             self.display.screen.blit(rotated_surface, (0, 0))
+
+            # Rotate the overlay image
+            rotated_overlay = pygame.transform.rotate(self.original_overlay, self.angle)
+            rect = rotated_overlay.get_rect(center=(150, 150))  # Center at desired position
+            self.display.screen.blit(rotated_overlay, rect.topleft)
+
             pygame.display.flip()
+
+            self.angle += 1  # Increase angle each frame
+            self.angle %= 360  # Keep angle within 0–359
 
             running = self.display.process_events()
             self.display.clock.tick(self.camera.fps)
+
 
         self.camera.release()
         self.display.quit()
