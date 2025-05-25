@@ -3,6 +3,7 @@ import pytesseract
 import re
 import numpy as np
 from PIL import Image
+from GUI import Modal
 
 class IDScanner:
     def __init__(self):
@@ -20,7 +21,7 @@ class IDScanner:
         """Calculate optimal scan area based on frame resolution and ID card proportions"""
         # Standard ID card aspect ratio is approximately 1.586:1 (CR80 standard - 85.60 × 53.98 mm)
         id_aspect_ratio = 85.60 / 53.98  # ≈ 1.586
-        
+            
         # Calculate scan area dimensions as percentage of frame size
         # Use 60% of frame width as maximum scan width, adjust for different resolutions
         if frame_width >= 1920:  # 1080p and higher
