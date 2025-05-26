@@ -61,12 +61,76 @@ class CameraApp:
         display_height = min(self.camera.width, self.camera.height)
         self.display = PygameDisplay(display_width, display_height)
 
-        self.original_overlay = pygame.image.load("image/Small.png").convert_alpha()
-        self.original_overlay = pygame.transform.scale(self.original_overlay, (200, 200))
+        self.image_sizes = (75, 75)
 
-        self.angle = 0  # Initial rotation angle
+        self.confirm_image = pygame.image.load("image/Confirm.png").convert_alpha()
+        self.confirm = pygame.transform.scale(self.confirm_image,(150,50))
+
+        image_files = {
+            "small": "image/Small.png",
+            "medium": "image/Medium.png",
+            "large": "image/large.png",
+            "extralarge": "image/ExtraLarge.png",
+            "polo": "image/Polo.png",
+            "pant": "image/Pant.png",
+            "blouse": "image/Blouse.png",
+            "skirt": "image/Skirt.png",
+            }
+
+        for name, path in image_files.items():
+            image = pygame.image.load(path).convert_alpha()
+            scaled = pygame.transform.scale(image, self.image_sizes)
+            setattr(self, name, scaled)
+            
+    def rotated(self):
+        image_names = [
+        "small", "medium", "large", "extralarge",
+        "polo", "pant", "blouse", "skirt"
+        ]
+
+        self.rotated_confirm = pygame.transform.rotate(self.confirm, 90)
+
+        for name in image_names:
+            original = getattr(self, name)
+            rotated = pygame.transform.rotate(original, 90)
+            setattr(self, f"rotated_{name}", rotated)
+
+    #To change the position of the image change this code
+    def location(self):
+        self.rotated()
+
+        positionSize = {
+            "small": 250,
+            "medium": 350,
+            "large": 450,
+            "extralarge": 550
+        }
+
+        positionUniform = {
+            "polo": 250,
+            "pant": 350,
+            "blouse": 450,
+            "skirt": 550
+        }
+
+        rect = self.rotated_confirm.get_rect(center=(90, 225))
+        self.display.screen.blit(self.rotated_confirm, rect.topleft)
+
+        for size, x in positionSize.items():
+            rotated_image = getattr(self, f"rotated_{size}")
+            rect = rotated_image.get_rect(center=(x, 480))
+            self.display.screen.blit(rotated_image, rect.topleft)
+
+        for uniform, x in positionUniform.items():
+            rotated_image = getattr(self, f"rotated_{uniform}")
+            rect = rotated_image.get_rect(center=(x, 0))
+            self.display.screen.blit(rotated_image, rect.topleft)
+
+
+        
 
     def run(self):
+        
         running = True
         while running:
             frame = self.camera.get_frame()
@@ -76,19 +140,9 @@ class CameraApp:
             frame_surface = pygame.surfarray.make_surface(np.rot90(frame))
             rotated_surface = pygame.transform.rotate(frame_surface, 90)
             rotated_surface = pygame.transform.smoothscale(rotated_surface, (self.display.screen.get_width(), self.display.screen.get_height()))
-
             self.display.screen.blit(rotated_surface, (0, 0))
-
-            # Rotate the overlay image
-            rotated_overlay = pygame.transform.rotate(self.original_overlay, self.angle)
-            rect = rotated_overlay.get_rect(center=(150, 150))  # Center at desired position
-            self.display.screen.blit(rotated_overlay, rect.topleft)
-
+            self.location()
             pygame.display.flip()
-
-            self.angle += 1  # Increase angle each frame
-            self.angle %= 360  # Keep angle within 0–359
-
             running = self.display.process_events()
             self.display.clock.tick(self.camera.fps)
 
