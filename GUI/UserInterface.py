@@ -65,6 +65,7 @@ class CameraApp:
 
         self.confirm_image = pygame.image.load("image/Confirm.png").convert_alpha()
         self.confirm = pygame.transform.scale(self.confirm_image,(150,50))
+        self.confirm.set_alpha(50)
 
         image_files = {
             "small": "image/Small.png",
@@ -80,6 +81,7 @@ class CameraApp:
         for name, path in image_files.items():
             image = pygame.image.load(path).convert_alpha()
             scaled = pygame.transform.scale(image, self.image_sizes)
+            scaled.set_alpha(50)
             setattr(self, name, scaled)
             
     def rotated(self):
@@ -130,7 +132,7 @@ class CameraApp:
         
 
     def run(self):
-        
+
         running = True
         while running:
             frame = self.camera.get_frame()
